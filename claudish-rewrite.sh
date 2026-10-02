@@ -112,6 +112,14 @@ if [ "$lang_set" = "1" ]; then
   OUT_LANG="$lang_override"            # explicit flag wins, "" forces keep-language
 else
   OUT_LANG="$(claudish_language "$PWD")"
+  # Auto-pin a Chinese document to its own language (see rewrite.sh): "same
+  # language as the text" is a weak hint a small model drops; naming the
+  # language is reliable. Han count under a forced UTF-8 locale; Latin-script
+  # input is left alone. -l '' still forces keep-language (lang_set=1 skips this).
+  if [ -z "$OUT_LANG" ]; then
+    _cjk="$(printf '%s' "$body" | LC_ALL=en_US.UTF-8 grep -o '[一-鿿]' 2>/dev/null | wc -l | tr -d ' ')"
+    [ "${_cjk:-0}" -ge 12 ] && OUT_LANG="Chinese"
+  fi
 fi
 
 sys="You rewrite Markdown prose into much simpler, plain language. Write the rewrite in the same language as the text you are rewriting. Keep every fact, name, number, link, and file path. Keep all Markdown structure — headings, lists, tables, and links. Do NOT change fenced code blocks or any YAML frontmatter; reproduce them exactly. Use short sentences and everyday words. Output ONLY the rewritten Markdown, with no preamble, labels, or commentary."

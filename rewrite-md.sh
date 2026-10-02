@@ -183,6 +183,13 @@ dbg "prose_len=$prose_len min=$MIN_CHARS fm_lines=${fm_lines:-0}"
 # Resolved after the cheap gates, since it reads settings files. Empty -> the
 # rewrite keeps the language the file is already written in.
 OUT_LANG="$(claudish_language "$CWD")"
+# Auto-pin a Chinese file to its own language (see rewrite.sh): naming the
+# language is reliable where "same language as the file" is a weak hint. Han
+# count under a forced UTF-8 locale; Latin-script files keep the default.
+if [ -z "$OUT_LANG" ]; then
+  _cjk="$(printf '%s' "$body" | LC_ALL=en_US.UTF-8 grep -o '[一-鿿]' 2>/dev/null | wc -l | tr -d ' ')"
+  [ "${_cjk:-0}" -ge 12 ] && OUT_LANG="Chinese"
+fi
 dbg "language=${OUT_LANG:-same as the file (default)}"
 
 # ---- obtain the rewrite ---------------------------------------------------

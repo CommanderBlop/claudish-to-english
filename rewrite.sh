@@ -256,6 +256,27 @@ fi
 # here needs it. Empty -> the rewrite follows the language of the message, so
 # the label must not claim one either.
 OUT_LANG="$(claudish_language "$cwd")"
+# Auto-pin a CJK message to its own language. "Same language as the message" is
+# a weak mid-prompt hint that a small model will abandon — it follows the
+# English framing and user-question context instead, drifting a Chinese message
+# into English. Naming the language explicitly (the OUT_LANG path below) is
+# reliable where the hint is not, so when no language is configured and the
+# message is clearly CJK, detect which and set it. Latin-script messages are
+# left alone: forcing a guessed language could mistranslate (English vs French).
+# The MIN_CHARS gate above already dropped short messages, and any count failure
+# just leaves OUT_LANG empty — the prior follow-the-message behaviour.
+if [ -z "$OUT_LANG" ]; then
+  # Count Han characters under a forced UTF-8 locale — the hook's own locale may
+  # be C, where a multibyte bracket range degrades to byte matching and
+  # misclassifies. Scoped to Han only: Jack's non-English is Chinese, and a
+  # Japanese/Korean branch needs its own reliable kana/Hangul test (the byte-range
+  # one matched Han). Anyone writing another language sets it with /claudish.
+  _cjk="$(printf '%s' "$full" | LC_ALL=en_US.UTF-8 grep -o '[一-鿿]' 2>/dev/null | wc -l | tr -d ' ')"
+  if [ "${_cjk:-0}" -ge 12 ]; then
+    OUT_LANG="Chinese"
+    dbg "auto-pinned CJK message (han=$_cjk) -> OUT_LANG=Chinese"
+  fi
+fi
 # The label names the style and, when set, the language, and marks the word
 # that carries the style in **bold**. displayContent is rendered as markdown,
 # so the emphasis is the renderer's own — no ANSI escapes: those would be at
