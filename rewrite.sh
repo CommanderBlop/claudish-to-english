@@ -270,6 +270,12 @@ case "$STYLE" in
   caveman) SEP=$'\n\n────────────────────────\n🦴 **Ugh.** Me say'"${OUT_LANG:+ in $OUT_LANG}"$':\n\n' ;;
   *)       SEP=$'\n\n────────────────────────\n💬 In plain **'"${OUT_LANG:-language}"$'**:\n\n' ;;
 esac
+# Closing rule for append mode: SEP only opens the plain-language block (rule +
+# label above the rewrite), so without this the rewrite runs straight into the
+# NEXT message's streamed original with no boundary. A bottom rule matching
+# SEP's top rule closes the box. Append mode only — replace mode shows no
+# original, so there is nothing to divide it from.
+SEP_END=$'\n\n────────────────────────'
 dbg "language=${OUT_LANG:-same as the message (default)} style=${STYLE:-default}"
 
 # ---- obtain the rewrite --------------------------------------------------
@@ -395,7 +401,7 @@ if [ "$MODE" = "replace" ]; then
 else
   # append: keep the streamed original (final chunk = its last delta),
   # then append the simplified version.
-  { cat "$final_part" 2>/dev/null; printf '%s' "$SEP"; printf '%s' "$rewrite"; printf '%s' "$oauth_note"; } > "$out"
+  { cat "$final_part" 2>/dev/null; printf '%s' "$SEP"; printf '%s' "$rewrite"; printf '%s' "$SEP_END"; printf '%s' "$oauth_note"; } > "$out"
 fi
 cleanup
 emit "$out"
